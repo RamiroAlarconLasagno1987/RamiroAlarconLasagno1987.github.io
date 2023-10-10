@@ -1,0 +1,41 @@
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background-color: #fff8e1;
+    display: flex;
+    flex-direction: column; 
+    align-items: center; 
+}
+
+.container {
+    display: flex;
+    flex-direction: row;  
+    justify-content: space-between;
+    flex-wrap: wrap;  
+    max-width: 1200px;
+    width: 100%; 
+    box-sizing: border-box;  /* Asegura que el padding y margin no se sumen al width */
+}
+
+.topic-container {
+    box-sizing: border-box;  /* Asegura que el padding y margin no se sumen al width */
+    flex: 0 0 calc(33.33% - 2%); /* Esto indica que cada .topic-container ocupará aproximadamente un tercio del espacio disponible, descontando el margen */
+    margin: 10px 1%;  
+    background-color: #fff3c0; 
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+h2 {
+    padding: 8px;
+    margin: 0; 
+    border-radius: 6px 6px 0 0;
+    background-color: #fff8e1;
+}
+
+p {
+    padding: 15px;
+    background-color: #fff6c1;
+    border-top: 1px solid #e0e0e0;
+    border-radius: 0 0 6px 6px;
+}
