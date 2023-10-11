@@ -70,4 +70,5 @@ listenToTopic("capsa/connected", "topic1-data");
 listenToTopic("test/dyna/despierta", "topic2-data");
 listenToTopic("test/getway/reporta", "topic3-data");
 listenToTopic("test/getway/GPRS", "topic4-data");
-listenToTopic("test/dyna/surfaceCard/", "topic5-data");
+listenToTopic("capsa/pozo/dyna/config/#", "topic5-data");
+listenToTopic("test/dyna/diagnostic/", "topic6-data");
