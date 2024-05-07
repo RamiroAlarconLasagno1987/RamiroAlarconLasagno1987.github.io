@@ -4,38 +4,52 @@ class TopicViewer extends HTMLElement {
     }
 
     constructor() {
-        super(); // Llama al constructor de la clase padre HTMLElement.
-        this.attachShadow({ mode: 'open' }); // Activa el shadow DOM para este componente.
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.loadCSS();
         this.shadowRoot.innerHTML = `
-            <style>
-                #messageDisplay { height: 150px; overflow-y: auto; border: 1px solid #ccc; padding: 8px; }
-                select, #messageDisplay, input { width: 100%; box-sizing: border-box; margin-bottom: 8px; }
-            </style>
-            <input type="text" id="topicSearch" placeholder="Buscar en tópicos...">
+            <div class="input-container">
+                <input type="text" id="topicSearch" placeholder="Buscar en tópicos...">
+                <button id="searchButton">Buscar</button>
+            </div>
             <select id="topicSelector"></select>
             <div id="messageDisplay"></div>
         `;
-        this.topicos = new Map(); // Almacena los mensajes organizados por tópico.
-        this.cliente = null; // Cliente MQTT, inicializado en null.
-        this.filtroDeBusqueda = ''; // Filtro para la búsqueda en tópicos, inicialmente vacío.
+        this.topicos = new Map();
+        this.cliente = null;
+        this.filtroDeBusqueda = '';
+    }
+
+    loadCSS() {
+        fetch('topic-viewer.css')
+            .then(response => response.text())
+            .then(css => {
+                const style = document.createElement('style');
+                style.textContent = css;
+                this.shadowRoot.appendChild(style);
+            });
     }
 
     connectedCallback() {
         this.selectorDeTopicos = this.shadowRoot.getElementById('topicSelector');
         this.visualizadorDeMensajes = this.shadowRoot.getElementById('messageDisplay');
         this.busquedaDeTopicos = this.shadowRoot.getElementById('topicSearch');
+        this.botonDeBusqueda = this.shadowRoot.getElementById('searchButton');
 
-        // Manejador de eventos para actualizar el filtro de búsqueda.
-        this.busquedaDeTopicos.addEventListener('input', () => {
+        this.botonDeBusqueda.addEventListener('click', () => {
             this.filtroDeBusqueda = this.busquedaDeTopicos.value.trim();
+            if (this.selectorDeTopicos.value) {
+                this.mostrarMensajes(this.selectorDeTopicos.value);
+            } else {
+                console.log('No hay tópico seleccionado para buscar.');
+            }
         });
 
-        // Manejador de eventos para cambiar la visualización de mensajes al seleccionar otro tópico.
         this.selectorDeTopicos.addEventListener('change', () => {
             this.mostrarMensajes(this.selectorDeTopicos.value);
         });
 
-        this.inicializarMQTT(); // Inicializa la configuración MQTT al conectar el componente.
+        this.inicializarMQTT();
     }
 
     attributeChangedCallback(nombre, valorAntiguo, valorNuevo) {
