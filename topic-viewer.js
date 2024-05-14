@@ -10,7 +10,7 @@ class TopicViewer extends HTMLElement {
         this.shadowRoot.innerHTML = `
             <div class="input-container">
                 <input type="text" id="topicSearch" placeholder="Buscar en tópicos...">
-                <button id="searchButton">Buscar</button>
+                <button id="searchButton">Aceptar</button>
             </div>
             <select id="topicSelector"></select>
             <div id="messageDisplay"></div>
@@ -38,10 +38,10 @@ class TopicViewer extends HTMLElement {
 
         this.botonDeBusqueda.addEventListener('click', () => {
             this.filtroDeBusqueda = this.busquedaDeTopicos.value.trim();
-            if (this.selectorDeTopicos.value) {
-                this.mostrarMensajes(this.selectorDeTopicos.value);
+            if (this.filtroDeBusqueda) {
+                this.buscarEnTopicos(this.filtroDeBusqueda);
             } else {
-                console.log('No hay tópico seleccionado para buscar.');
+                console.log('No hay término de búsqueda ingresado.');
             }
         });
 
@@ -112,6 +112,7 @@ class TopicViewer extends HTMLElement {
             opcion.value = topico;
             opcion.textContent = topico;
             this.selectorDeTopicos.appendChild(opcion);
+            this.ordenarTopicos();
         }
         if (!this.topicos.get(topico)) {
             this.topicos.set(topico, []);
@@ -124,6 +125,24 @@ class TopicViewer extends HTMLElement {
         // Alerta si el mensaje coincide con el filtro de búsqueda.
         if (this.filtroDeBusqueda && topicoCompleto.includes(this.filtroDeBusqueda)) {
             alert(`Mensaje nuevo en tópico que coincide con la búsqueda: ${topicoCompleto}`);
+        }
+    }
+
+    ordenarTopicos() {
+        const opciones = Array.from(this.selectorDeTopicos.options);
+        opciones.sort((a, b) => a.textContent.localeCompare(b.textContent));
+        this.selectorDeTopicos.innerHTML = '';
+        opciones.forEach(opcion => this.selectorDeTopicos.appendChild(opcion));
+    }
+
+    buscarEnTopicos(terminoDeBusqueda) {
+        const opciones = Array.from(this.selectorDeTopicos.options);
+        const topicoEncontrado = opciones.find(opcion => opcion.value.includes(terminoDeBusqueda));
+        if (topicoEncontrado) {
+            this.selectorDeTopicos.value = topicoEncontrado.value;
+            this.mostrarMensajes(topicoEncontrado.value);
+        } else {
+            console.log('No se encontró ningún tópico que coincida con la búsqueda.');
         }
     }
 
