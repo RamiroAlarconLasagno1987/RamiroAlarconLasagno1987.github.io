@@ -6,23 +6,23 @@ class TopicViewer extends HTMLElement {
 
     constructor() {
         super();
-        this.initializeComponent();
+        this.inicializarComponente();
     }
 
     // Inicializa componentes esenciales para el funcionamiento del custom element
-    initializeComponent() {
+    inicializarComponente() {
         this.attachShadow({ mode: 'open' });
-        this.loadCSS();
-        this.setupHTML();
-        this.initializeVariables();
-        this.requestNotificationPermission(); // Solicita permiso para notificaciones
+        this.cargarCSS();
+        this.configurarHTML();
+        this.inicializarVariables();
+        this.solicitarPermisoNotificaciones(); // Solicita permiso para notificaciones
     }
 
     // Solicita permisos para notificaciones
-    requestNotificationPermission() {
+    solicitarPermisoNotificaciones() {
         if ("Notification" in window) {
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
+            Notification.requestPermission().then(permiso => {
+                if (permiso === "granted") {
                     console.log("Permiso de notificación concedido");
                 } else {
                     console.log("Permiso de notificación denegado");
@@ -32,21 +32,21 @@ class TopicViewer extends HTMLElement {
     }
 
     // Carga el CSS desde un archivo externo
-    loadCSS() {
+    cargarCSS() {
         fetch('topic-viewer.css')
-            .then(response => response.text())
-            .then(css => this.applyStyles(css));
+            .then(respuesta => respuesta.text())
+            .then(css => this.aplicarEstilos(css));
     }
 
     // Aplica estilos CSS al shadow DOM
-    applyStyles(css) {
+    aplicarEstilos(css) {
         const style = document.createElement('style');
         style.textContent = css;
         this.shadowRoot.appendChild(style);
     }
 
     // Configura el HTML inicial del componente
-    setupHTML() {
+    configurarHTML() {
         this.shadowRoot.innerHTML = `
             <div class="input-container">
                 <input type="text" id="topicSearch" placeholder="Buscar en tópicos...">
@@ -58,22 +58,22 @@ class TopicViewer extends HTMLElement {
     }
 
     // Inicializa variables necesarias para el funcionamiento del componente
-    initializeVariables() {
+    inicializarVariables() {
         this.topics = new Map();
-        this.lastUpdateTime = new Map(); // Mapa para el tiempo de última actualización de mensajes
+        this.lastUpdateTime = new Map();
         this.client = null;
         this.searchFilter = '';
     }
 
     // Configura elementos y eventos una vez el elemento está conectado al DOM
     connectedCallback() {
-        this.setupElements();
-        this.attachEventListeners();
-        this.initializeMQTT();
+        this.configurarElementos();
+        this.adjuntarManejadoresEventos();
+        this.inicializarMQTT();
     }
 
     // Asigna elementos del DOM a variables para fácil acceso
-    setupElements() {
+    configurarElementos() {
         this.topicSelector = this.shadowRoot.getElementById('topicSelector');
         this.messageDisplay = this.shadowRoot.getElementById('messageDisplay');
         this.topicSearch = this.shadowRoot.getElementById('topicSearch');
@@ -81,53 +81,51 @@ class TopicViewer extends HTMLElement {
     }
 
     // Adjunta manejadores de eventos a los elementos relevantes
-    attachEventListeners() {
-        this.searchButton.addEventListener('click', () => this.handleSearchButtonClick());
-        this.topicSelector.addEventListener('change', () => this.displayMessages(this.topicSelector.value));
+    adjuntarManejadoresEventos() {
+        this.searchButton.addEventListener('click', () => this.manejarClickBotonBuscar());
+        this.topicSelector.addEventListener('change', () => this.mostrarMensajes(this.topicSelector.value));
     }
 
     // Maneja el evento de clic en el botón de búsqueda
-// Maneja el evento de clic en el botón de búsqueda
-    handleSearchButtonClick() {
-    this.searchFilter = this.topicSearch.value.trim();
-    if (this.searchFilter) {
-        this.searchTopics(this.searchFilter);
-        console.log('Búsqueda iniciada con:', this.searchFilter);
-    } else {
-        console.log('No hay término de búsqueda ingresado.');
-        this.messageDisplay.innerHTML = ''; // Limpia cualquier mensaje mostrado si la búsqueda está vacía
+    manejarClickBotonBuscar() {
+        this.searchFilter = this.topicSearch.value.trim();
+        if (this.searchFilter) {
+            this.buscarTopicos(this.searchFilter);
+            console.log('Búsqueda iniciada con:', this.searchFilter);
+        } else {
+            console.log('No hay término de búsqueda ingresado.');
+            this.messageDisplay.innerHTML = ''; // Limpia cualquier mensaje mostrado si la búsqueda está vacía
+        }
     }
-}
-
 
     // Reacciona a cambios en los atributos observados
     attributeChangedCallback(name, oldValue, newValue) {
         if (name === 'filter' && newValue && this.client) {
-            this.subscribeToTopics(newValue);
+            this.suscribirATopicos(newValue);
         }
     }
 
     // Inicializa la conexión MQTT
-    initializeMQTT() {
+    inicializarMQTT() {
         const clientId = `web_${Math.random().toString(16).slice(2, 10)}`;
         this.client = new Paho.MQTT.Client("well-optimus.rfindustrial.com", 9191, clientId);
     
-        this.client.onConnectionLost = response => {
-            if (response.errorCode !== 0) {
-                console.log("Conexión perdida:", response.errorMessage);
+        this.client.onConnectionLost = respuesta => {
+            if (respuesta.errorCode !== 0) {
+                console.log("Conexión perdida:", respuesta.errorMessage);
             }
         };
     
-        this.client.onMessageArrived = this.handleMessageReceived.bind(this);
+        this.client.onMessageArrived = this.manejarMensajeRecibido.bind(this);
     
         this.client.connect({
             useSSL: true,
             onSuccess: () => {
                 console.log("Conexión MQTT segura exitosa");
                 if (this.hasAttribute('filter')) {
-                    this.subscribeToTopics(this.getAttribute('filter'));
+                    this.suscribirATopicos(this.getAttribute('filter'));
                 }
-                this.startTimer();
+                this.iniciarTemporizador();
             },
             onFailure: (error) => {
                 console.log("Conexión MQTT segura fallida: " + error.errorMessage);
@@ -136,119 +134,112 @@ class TopicViewer extends HTMLElement {
     }
 
     // Suscribe a los tópicos especificados por el atributo 'filter'
-    subscribeToTopics(filter) {
+    suscribirATopicos(filter) {
         this.client.subscribe(filter, { qos: 1 });
     }
 
     // Maneja la recepción de mensajes MQTT
-    handleMessageReceived(message) {
-        this.addMessage(message);
+    manejarMensajeRecibido(message) {
+        this.agregarMensaje(message);
         // Verifica si el mensaje coincide con el filtro de búsqueda y si se tienen permisos para notificar
         if (this.searchFilter && message.payloadString.includes(this.searchFilter) && Notification.permission === "granted") {
-            this.sendNotification(`Nuevo mensaje en tópico: ${message.destinationName}`, message.payloadString);
+            this.enviarNotificacion(`Nuevo mensaje en tópico: ${message.destinationName}`, message.payloadString);
         }
     }
 
     // Envía una notificación al usuario
-    sendNotification(title, body) {
-    new Notification(title, {
-        body: body,
-        icon: 'icon_url' // Opcional: URL de un ícono para mostrar en la notificación
-    });
-}
+    enviarNotificacion(titulo, cuerpo) {
+        new Notification(titulo, {
+            body: cuerpo,
+            icon: 'icon_url' // Opcional: URL de un ícono para mostrar en la notificación
+        });
+    }
+
     // Añade un mensaje al tópico correspondiente y actualiza el contador
-    addMessage(message) {
-        const topicComplete = message.destinationName;
+    agregarMensaje(mensaje) {
+        const topicComplete = mensaje.destinationName;
         const topic = topicComplete.substring(topicComplete.lastIndexOf('/') + 1);
         this.lastUpdateTime.set(topic, Date.now());
 
         if (!this.topics.has(topic)) {
             this.topics.set(topic, []);
-            this.addTopicOption(topic);
+            this.agregarOpcionTopico(topic);
         }
 
-        this.topics.get(topic).push(message.payloadString);
-        this.updateTopicCount(topic); // Actualiza el contador en el selector
+        this.topics.get(topic).push(mensaje.payloadString);
+        this.actualizarContadorTopico(topic); // Actualiza el contador en el selector
 
         if (this.topicSelector.value === topic) {
-            this.displayMessages(topic);
+            this.mostrarMensajes(topic);
         }
 
-        this.resetTopicStyle(topic); // Restablece el estilo del tópico al color original
+        this.restablecerEstiloTopico(topic); // Restablece el estilo del tópico al color original
     }
 
-    resetTopicStyle(topic) {
-        const option = this.topicSelector.querySelector(`option[value="${topic}"]`);
+    // Restablece el estilo del tópico al color original
+    restablecerEstiloTopico(topico) {
+        const option = this.topicSelector.querySelector(`option[value="${topico}"]`);
         if (option) {
             option.style.backgroundColor = '#7ca3cc'; // Color azul original
         }
     }
 
     // Inicia un temporizador que verifica periódicamente la necesidad de actualizar el estilo de los tópicos
-    startTimer() {
+    iniciarTemporizador() {
         setInterval(() => {
             const currentTime = Date.now();
-            this.topics.forEach((_, topic) => {
-                const lastTime = this.lastUpdateTime.get(topic);
-                if (currentTime - lastTime > 300000) {
-                    this.updateTopicStyle(topic, true);
+            this.topics.forEach((_, topico) => {
+                const lastTime = this.lastUpdateTime.get(topico);
+                if (currentTime - lastTime > 180000) { // 3 minutos
+                    this.actualizarEstiloTopico(topico, true);
                 } else {
-                    this.updateTopicStyle(topic, false);
+                    this.actualizarEstiloTopico(topico, false);
                 }
             });
-        }, 60000);
+        }, 30000); // Cada medio minuto
     }
 
     // Actualiza el estilo de un tópico específico según si está actualizado o no
-    updateTopicStyle(topic, isStale) {
-        const option = this.topicSelector.querySelector(`option[value="${topic}"]`);
+    actualizarEstiloTopico(topico, estaDesactualizado) {
+        const option = this.topicSelector.querySelector(`option[value="${topico}"]`);
         if (option) {
-            option.style.backgroundColor = isStale ? '#e91010' : '#7ca3cc';
+            option.style.backgroundColor = estaDesactualizado ? '#e91010' : '#7ca3cc';
         }
     }
 
     // Añade un tópico al selector con un contador inicializado a 0
-    addTopicOption(topic) {
+    agregarOpcionTopico(topico) {
         const option = document.createElement('option');
-        option.value = topic;
-        option.textContent = `${topic} (0)`;
+        option.value = topico;
+        option.textContent = `${topico} (0)`;
         this.topicSelector.appendChild(option);
-        this.sortTopics();
+        this.ordenarTopicos();
     }
 
     // Actualiza el contador de mensajes de un tópico
-    updateTopicCount(topic) {
-        const messages = this.topics.get(topic);
-        const option = this.topicSelector.querySelector(`option[value="${topic}"]`);
+    actualizarContadorTopico(topico) {
+        const mensajes = this.topics.get(topico);
+        const option = this.topicSelector.querySelector(`option[value="${topico}"]`);
         if (option) {
-            option.textContent = `${topic} ----- (${messages.length})`;
+            option.textContent = `${topico} ----- (${mensajes.length})`;
         }
     }
 
     // Ordena los tópicos alfabéticamente en el selector
-    sortTopics() {
+    ordenarTopicos() {
         const options = Array.from(this.topicSelector.options);
         options.sort((a, b) => a.textContent.localeCompare(b.textContent));
         this.topicSelector.innerHTML = '';
         options.forEach(option => this.topicSelector.appendChild(option));
     }
 
-    // Busca tópicos que coincidan con el término de búsqueda ingresado
-    searchTopics(searchTerm) {
-        const foundTopic = Array.from(this.topicSelector.options).find(option => option.value.endsWith(searchTerm));
-        if (foundTopic) {
-            this.topicSelector.value = foundTopic.value;
-            this.displayMessages(foundTopic.value);
-        } else {
-            console.log('No se encontró ningún tópico que coincida con la búsqueda del último segmento.');
-        }
+    // Muestra los mensajes de un tópico específico
+    mostrarMensajes(topico) {
+        const mensajes = this.topics.get(topico) || [];
+        this.messageDisplay.innerHTML = mensajes.map(mensaje => `<div>${mensaje}</div>`).join('');
     }
 
-    // Muestra los mensajes de un tópico específico
-    displayMessages(topic) {
-        const messages = this.topics.get(topic) || [];
-        this.messageDisplay.innerHTML = messages.map(message => `<div>${message}</div>`).join('');
-    }
+
 }
 
 customElements.define('topic-viewer', TopicViewer);
