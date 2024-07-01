@@ -178,11 +178,19 @@ class TopicViewer extends HTMLElement {
 
     // Restablece el estilo del tópico al color original
     restablecerEstiloTopico(topico) {
-        const option = this.topicSelector.querySelector(`option[value="${topico}"]`);
+        // Seleccionar el elemento select que contiene las opciones
+        const select = this.topicSelector;   
+        // Buscar la opción específica dentro del select
+        const option = select.querySelector(`option[value="${topico}"]`);
+        // Verificar si la opción existe
         if (option) {
-            option.style.backgroundColor = '#7ca3cc'; // Color azul original
+            // Restablecer el color de fondo de la opción específica al color azul original
+            option.style.backgroundColor = '#7ca3cc';           
+            // También restablecer el color de fondo del select completo al color azul original
+            select.style.backgroundColor = '#7ca3cc';
         }
     }
+    
 
     // Inicia un temporizador que verifica periódicamente la necesidad de actualizar el estilo de los tópicos
     iniciarTemporizador() {
@@ -201,11 +209,19 @@ class TopicViewer extends HTMLElement {
 
     // Actualiza el estilo de un tópico específico según si está actualizado o no
     actualizarEstiloTopico(topico, estaDesactualizado) {
-        const option = this.topicSelector.querySelector(`option[value="${topico}"]`);
+        // Seleccionar el elemento select que contiene las opciones
+        const select = this.topicSelector;   
+        // Buscar la opción específica dentro del select
+        const option = select.querySelector(`option[value="${topico}"]`);    
+        // Verificar si la opción existe
         if (option) {
+            // Actualizar el color de fondo de la opción específica
             option.style.backgroundColor = estaDesactualizado ? '#e91010' : '#7ca3cc';
+            // También actualizar el color de fondo del select completo
+            select.style.backgroundColor = estaDesactualizado ? '#e91010' : '#7ca3cc';
         }
     }
+    
 
     // Añade un tópico al selector con un contador inicializado a 0
     agregarOpcionTopico(topico) {
