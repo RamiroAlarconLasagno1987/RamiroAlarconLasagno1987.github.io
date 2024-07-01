@@ -15,6 +15,20 @@ class TopicViewer extends HTMLElement {
         this.loadCSS();
         this.setupHTML();
         this.initializeVariables();
+        this.requestNotificationPermission(); // Solicita permiso para notificaciones
+    }
+
+    // Solicita permisos para notificaciones
+    requestNotificationPermission() {
+        if ("Notification" in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    console.log("Permiso de notificación concedido");
+                } else {
+                    console.log("Permiso de notificación denegado");
+                }
+            });
+        }
     }
 
     // Carga el CSS desde un archivo externo
@@ -73,10 +87,18 @@ class TopicViewer extends HTMLElement {
     }
 
     // Maneja el evento de clic en el botón de búsqueda
+// Maneja el evento de clic en el botón de búsqueda
     handleSearchButtonClick() {
-        this.searchFilter = this.topicSearch.value.trim();
-        this.searchFilter ? this.searchTopics(this.searchFilter) : console.log('No hay término de búsqueda ingresado.');
+    this.searchFilter = this.topicSearch.value.trim();
+    if (this.searchFilter) {
+        this.searchTopics(this.searchFilter);
+        console.log('Búsqueda iniciada con:', this.searchFilter);
+    } else {
+        console.log('No hay término de búsqueda ingresado.');
+        this.messageDisplay.innerHTML = ''; // Limpia cualquier mensaje mostrado si la búsqueda está vacía
     }
+}
+
 
     // Reacciona a cambios en los atributos observados
     attributeChangedCallback(name, oldValue, newValue) {
@@ -121,8 +143,19 @@ class TopicViewer extends HTMLElement {
     // Maneja la recepción de mensajes MQTT
     handleMessageReceived(message) {
         this.addMessage(message);
+        // Verifica si el mensaje coincide con el filtro de búsqueda y si se tienen permisos para notificar
+        if (this.searchFilter && message.payloadString.includes(this.searchFilter) && Notification.permission === "granted") {
+            this.sendNotification(`Nuevo mensaje en tópico: ${message.destinationName}`, message.payloadString);
+        }
     }
 
+    // Envía una notificación al usuario
+    sendNotification(title, body) {
+    new Notification(title, {
+        body: body,
+        icon: 'icon_url' // Opcional: URL de un ícono para mostrar en la notificación
+    });
+}
     // Añade un mensaje al tópico correspondiente y actualiza el contador
     addMessage(message) {
         const topicComplete = message.destinationName;
