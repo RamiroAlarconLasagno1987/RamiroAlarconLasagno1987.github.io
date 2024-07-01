@@ -1,10 +1,11 @@
 #topicSelector {
     background-color: #7ca3cc; /* Un azul más intenso */
     border-color: #a6ccf5; /* Un borde más oscuro para mayor contraste */
-    color: #000000; /* Texto blanco para mejor visibilidad */
+    color: #000000; /* Texto Negro para mejor visibilidad */
     padding: 12px; /* Alineado con el estilo de otros elementos de entrada */
     font-size: 18px; /* Tamaño de fuente grande para facilidad de lectura */
 }
+#ffcccc
 
 select, #messageDisplay, input, button {
     width: 100%;
