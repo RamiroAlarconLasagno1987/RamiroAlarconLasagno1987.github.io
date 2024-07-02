@@ -80,11 +80,23 @@ class TopicViewer extends HTMLElement {
         this.searchButton = this.shadowRoot.getElementById('searchButton');
     }
 
-    // Adjunta manejadores de eventos a los elementos relevantes
-    adjuntarManejadoresEventos() {
-        this.searchButton.addEventListener('click', () => this.manejarClickBotonBuscar());
-        this.topicSelector.addEventListener('change', () => this.mostrarMensajes(this.topicSelector.value));
-    }
+   // Adjunta manejadores de eventos a los elementos relevantes
+adjuntarManejadoresEventos() {
+    this.searchButton.addEventListener('click', () => this.manejarClickBotonBuscar());
+
+    // Manejador de evento 'change' modificado para actualizar el color de fondo del select
+    this.topicSelector.addEventListener('change', () => {
+        this.mostrarMensajes(this.topicSelector.value);
+
+        // Captura el color de fondo del option seleccionado
+        const selectedOption = this.topicSelector.options[this.topicSelector.selectedIndex];
+        const selectedColor = selectedOption.style.backgroundColor;
+
+        // Asigna el color de fondo del option al select
+        this.topicSelector.style.backgroundColor = selectedColor;
+    });
+}
+
 
     // Maneja el evento de clic en el botón de búsqueda
     manejarClickBotonBuscar() {
@@ -173,7 +185,7 @@ class TopicViewer extends HTMLElement {
             this.mostrarMensajes(topic);
         }
 
-        this.restablecerEstiloTopico(topic); // Restablece el estilo del tópico al color original
+        //this.restablecerEstiloTopico(topic); // Restablece el estilo del tópico al color original
     }
 
     // Restablece el estilo del tópico al color original
@@ -187,7 +199,7 @@ class TopicViewer extends HTMLElement {
             // Restablecer el color de fondo de la opción específica al color azul original
             option.style.backgroundColor = '#7ca3cc';           
             // También restablecer el color de fondo del select completo al color azul original
-            select.style.backgroundColor = '#7ca3cc';
+            //select.style.backgroundColor = '#7ca3cc';
         }
     }
     
