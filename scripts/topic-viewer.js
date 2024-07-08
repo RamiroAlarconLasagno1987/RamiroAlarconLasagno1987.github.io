@@ -213,7 +213,7 @@ class TopicViewer extends HTMLElement {
                     this.actualizarEstiloTopico(topico, false);
                 }
             });
-        }, 30000);
+        }, 60000);
     }
 
     actualizarEstiloTopico(topico, estaDesactualizado) {

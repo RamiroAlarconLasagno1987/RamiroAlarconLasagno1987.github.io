@@ -30,3 +30,20 @@ self.addEventListener('fetch', fetchEvent => {
     })
   );
 });
+
+// Evento activate para eliminar cachés antiguos
+self.addEventListener('activate', activateEvent => {
+  console.log('Activate event triggered');
+  activateEvent.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.map(key => {
+          if (key !== staticCacheName) {
+            console.log('Deleting old cache:', key);
+            return caches.delete(key);
+          }
+        })
+      );
+    })
+  );
+});

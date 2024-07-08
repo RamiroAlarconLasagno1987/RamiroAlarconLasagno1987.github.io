@@ -25,9 +25,26 @@
     
     <script>
         if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(reg => console.log('Service Worker registered', reg))
-            .catch(err => console.log('Service Worker not registered', err));
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+              .then(reg => {
+                console.log('Service Worker registered', reg);
+                reg.onupdatefound = () => {
+                  const installingWorker = reg.installing;
+                  installingWorker.onstatechange = () => {
+                    if (installingWorker.state === 'installed') {
+                      if (navigator.serviceWorker.controller) {
+                        console.log('New content is available; please refresh.');
+                        // Here you can notify the user to refresh the page
+                      } else {
+                        console.log('Content is cached for offline use.');
+                      }
+                    }
+                  };
+                };
+              })
+              .catch(err => console.log('Service Worker not registered', err));
+          });
         }
 
         // Obtener referencia al cliente MQTT
