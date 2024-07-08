@@ -1,4 +1,16 @@
 import MQTTHandler from './mqtt-handler.js';
+import { solicitarPermisoNotificaciones } from './notification-handler.js';
+import { cargarCSS, configurarHTML, configurarElementos } from './dom-utils.js';
+import {
+    manejarMensajeRecibido,
+    agregarMensaje,
+    actualizarContadorTopicos,
+    agregarOpcionTopico,
+    actualizarContadorTopico,
+    ordenarTopicos,
+    mostrarMensajes,
+    limpiarYReiniciar
+} from './message-handler.js';
 
 class TopicViewer extends HTMLElement {
     static get observedAttributes() {
@@ -12,49 +24,10 @@ class TopicViewer extends HTMLElement {
 
     inicializarComponente() {
         this.attachShadow({ mode: 'open' });
-        this.cargarCSS();
-        this.configurarHTML();
+        cargarCSS(this.shadowRoot);
+        configurarHTML(this.shadowRoot);
         this.inicializarVariables();
-        this.solicitarPermisoNotificaciones();
-    }
-
-    solicitarPermisoNotificaciones() {
-        if ("Notification" in window) {
-            Notification.requestPermission().then(permiso => {
-                if (permiso === "granted") {
-                    console.log("Permiso de notificación concedido");
-                } else {
-                    console.log("Permiso de notificación denegado");
-                }
-            });
-        }
-    }
-
-    cargarCSS() {
-        fetch('styles/topic-viewer.css')
-            .then(respuesta => respuesta.text())
-            .then(css => this.aplicarEstilos(css));
-    }
-
-    aplicarEstilos(css) {
-        const style = document.createElement('style');
-        style.textContent = css;
-        this.shadowRoot.appendChild(style);
-    }
-
-    configurarHTML() {
-        this.shadowRoot.innerHTML = `
-            <div class="input-container">
-                <input type="text" id="topicSearch" placeholder="Buscar en tópicos...">
-                <button id="searchButton">Aceptar</button>
-            </div>
-            <div style="display: flex; align-items: center;">
-                <select id="topicSelector"></select>
-                <div id="topicCount" style="margin-left: 10px;">0</div>
-                <input type="number" id="inputNum" value="10" min="1" style="margin-left: 10px;">
-            </div>
-            <div id="messageDisplay"></div>
-        `;
+        solicitarPermisoNotificaciones();
     }
 
     inicializarVariables() {
@@ -69,20 +42,18 @@ class TopicViewer extends HTMLElement {
     }
 
     connectedCallback() {
-        this.configurarElementos();
+        const elementos = configurarElementos(this.shadowRoot);
+        this.topicSelector = elementos.topicSelector;
+        this.messageDisplay = elementos.messageDisplay;
+        this.topicSearch = elementos.topicSearch;
+        this.searchButton = elementos.searchButton;
+        this.inputNum = elementos.inputNum;
+
         this.adjuntarManejadoresEventos();
         if (this.hasAttribute('filter')) {
             this.mqttHandler.subscribe(this.getAttribute('filter'));
         }
         this.iniciarTemporizador();
-    }
-
-    configurarElementos() {
-        this.topicSelector = this.shadowRoot.getElementById('topicSelector');
-        this.messageDisplay = this.shadowRoot.getElementById('messageDisplay');
-        this.topicSearch = this.shadowRoot.getElementById('topicSearch');
-        this.searchButton = this.shadowRoot.getElementById('searchButton');
-        this.inputNum = this.shadowRoot.getElementById('inputNum');
     }
 
     adjuntarManejadoresEventos() {
@@ -120,86 +91,35 @@ class TopicViewer extends HTMLElement {
     }
 
     manejarMensajeRecibido(message) {
-        this.agregarMensaje(message);
-        if (this.searchFilter && message.payloadString.includes(this.searchFilter) && Notification.permission === "granted") {
-            this.enviarNotificacion(`Nuevo mensaje en topico: ${message.destinationName}`, message.payloadString);
-        }
-    }
-
-    enviarNotificacion(titulo, cuerpo) {
-        new Notification(titulo, {
-            body: cuerpo,
-            icon: 'icon_url'
-        });
+        manejarMensajeRecibido(this, message);
     }
 
     agregarMensaje(mensaje) {
-        const topicComplete = mensaje.destinationName;
-        const topic = topicComplete.substring(topicComplete.lastIndexOf('/') + 1);
-        this.lastUpdateTime.set(topic, Date.now());
-
-        if (!this.topics.has(topic)) {
-            this.topics.set(topic, []);
-            this.messageCounters.set(topic, 0); // Inicializar contador de mensajes
-            this.agregarOpcionTopico(topic);
-            this.actualizarContadorTopicos();
-        }
-
-        this.topics.get(topic).push(mensaje.payloadString);
-        this.messageCounters.set(topic, this.messageCounters.get(topic) + 1); // Incrementar contador de mensajes
-
-        if (this.topics.get(topic).length > parseInt(this.inputNum.value, 10)) {
-            this.topics.get(topic).shift(); // Eliminar mensajes antiguos
-        }
-        this.actualizarContadorTopico(topic);
-
-        if (this.topicSelector.value === topic) {
-            this.mostrarMensajes(topic);
-        }
+        agregarMensaje(this, mensaje);
     }
 
     actualizarContadorTopicos() {
-        this.topicCount = this.topics.size;
-        this.shadowRoot.getElementById('topicCount').textContent = this.topicCount;
+        actualizarContadorTopicos(this);
     }
 
     agregarOpcionTopico(topico) {
-        const option = document.createElement('option');
-        option.value = topico;
-        option.textContent = `${topico} (0)`;
-        this.topicSelector.appendChild(option);
-        this.ordenarTopicos();
+        agregarOpcionTopico(this, topico);
     }
 
     actualizarContadorTopico(topico) {
-        const totalMessages = this.messageCounters.get(topico);
-        const option = this.topicSelector.querySelector(`option[value="${topico}"]`);
-        if (option) {
-            option.textContent = `${topico} ----- (${totalMessages})`;
-        }
+        actualizarContadorTopico(this, topico);
     }
 
     ordenarTopicos() {
-        const options = Array.from(this.topicSelector.options);
-        options.sort((a, b) => a.textContent.localeCompare(b.textContent));
-        this.topicSelector.innerHTML = '';
-        options.forEach(option => this.topicSelector.appendChild(option));
+        ordenarTopicos(this);
     }
 
     mostrarMensajes(topico) {
-        const mensajes = this.topics.get(topico) || [];
-        this.messageDisplay.innerHTML = mensajes.map(mensaje => `<div>${mensaje}</div>`).join('');
+        mostrarMensajes(this, topico);
     }
 
     limpiarYReiniciar() {
-        this.topics.clear();
-        this.messageCounters.clear(); // Limpiar contador de mensajes
-        this.messageDisplay.innerHTML = '';
-        this.topicSelector.innerHTML = '';
-        this.actualizarContadorTopicos();
-        if (this.hasAttribute('filter')) {
-            this.mqttHandler.subscribe(this.getAttribute('filter'));
-        }
+        limpiarYReiniciar(this);
     }
 
     iniciarTemporizador() {
@@ -213,7 +133,7 @@ class TopicViewer extends HTMLElement {
                     this.actualizarEstiloTopico(topico, false);
                 }
             });
-        }, 60000);
+        }, 30000);
     }
 
     actualizarEstiloTopico(topico, estaDesactualizado) {
