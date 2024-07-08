@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <title>Web Components MQTT - Multi Window</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js"></script>
-    <script src="mqtt-subscriber.js"></script>
-    <script src="topic-viewer.js"></script>
+    <script type="module" src="scripts/topic-viewer.js"></script>
+    <link rel="stylesheet" href="styles/topic-viewer.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <mqtt-subscriber id="mqttClient"></mqtt-subscriber>
-    
     <h2>Reportes GPRS</h2>
     <topic-viewer filter="RFIndustrial/oil-gas/control/reporte/GPRS/#"></topic-viewer>
     <h2>Reportes de Base</h2>
@@ -24,9 +23,13 @@
     <h2>Cartas enviadas del dinamometro al servidor</h2>
     <topic-viewer filter="RFIndustrial/oil-gas/control/carta-obtenida-dinamometro/#"></topic-viewer>
     
-    
-
     <script>
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('Service Worker registered', reg))
+            .catch(err => console.log('Service Worker not registered', err));
+        }
+
         // Obtener referencia al cliente MQTT
         const mqttClient = document.getElementById('mqttClient');
         // Obtener todos los elementos 'topic-viewer'
