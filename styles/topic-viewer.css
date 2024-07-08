@@ -5,7 +5,6 @@
     padding: 12px; /* Alineado con el estilo de otros elementos de entrada */
     font-size: 18px; /* Tamaño de fuente grande para facilidad de lectura */
 }
-#ffcccc
 
 select, #messageDisplay, input, button {
     width: 100%;
@@ -42,4 +41,20 @@ button {
     display: flex;
     width: 100%;
     align-items: center;
+}
+
+#topicCount {
+    margin-left: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #007bff;
+}
+
+#inputNum {
+    margin-left: 10px;
+    padding: 6px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 60px;
 }

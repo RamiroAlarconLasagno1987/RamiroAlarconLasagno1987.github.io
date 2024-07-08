@@ -1,7 +1,6 @@
 import MQTTHandler from './mqtt-handler.js';
 
 class TopicViewer extends HTMLElement {
-    // Define qué atributos deben observarse para cambios
     static get observedAttributes() {
         return ['filter'];
     }
@@ -11,16 +10,14 @@ class TopicViewer extends HTMLElement {
         this.inicializarComponente();
     }
 
-    // Inicializa componentes esenciales para el funcionamiento del custom element
     inicializarComponente() {
         this.attachShadow({ mode: 'open' });
         this.cargarCSS();
         this.configurarHTML();
         this.inicializarVariables();
-        this.solicitarPermisoNotificaciones(); // Solicita permiso para notificaciones
+        this.solicitarPermisoNotificaciones();
     }
 
-    // Solicita permisos para notificaciones
     solicitarPermisoNotificaciones() {
         if ("Notification" in window) {
             Notification.requestPermission().then(permiso => {
@@ -33,21 +30,18 @@ class TopicViewer extends HTMLElement {
         }
     }
 
-    // Carga el CSS desde un archivo externo
     cargarCSS() {
         fetch('styles/topic-viewer.css')
             .then(respuesta => respuesta.text())
             .then(css => this.aplicarEstilos(css));
     }
 
-    // Aplica estilos CSS al shadow DOM
     aplicarEstilos(css) {
         const style = document.createElement('style');
         style.textContent = css;
         this.shadowRoot.appendChild(style);
     }
 
-    // Configura el HTML inicial del componente
     configurarHTML() {
         this.shadowRoot.innerHTML = `
             <div class="input-container">
@@ -57,23 +51,23 @@ class TopicViewer extends HTMLElement {
             <div style="display: flex; align-items: center;">
                 <select id="topicSelector"></select>
                 <div id="topicCount" style="margin-left: 10px;">0</div>
+                <input type="number" id="inputNum" value="10" min="1" style="margin-left: 10px;">
             </div>
             <div id="messageDisplay"></div>
         `;
     }
 
-    // Inicializa variables necesarias para el funcionamiento del componente
     inicializarVariables() {
         this.topics = new Map();
         this.lastUpdateTime = new Map();
+        this.messageCounters = new Map(); // Contador de mensajes por tópico
         this.searchFilter = '';
-        this.topicCount = 0; // Contador de tópicos únicos
+        this.topicCount = 0;
 
         const clientId = `web_${Math.random().toString(16).slice(2, 10)}`;
         this.mqttHandler = new MQTTHandler(clientId, this.manejarMensajeRecibido.bind(this), this.onConnectionLost.bind(this));
     }
 
-    // Configura elementos y eventos una vez el elemento está conectado al DOM
     connectedCallback() {
         this.configurarElementos();
         this.adjuntarManejadoresEventos();
@@ -83,75 +77,62 @@ class TopicViewer extends HTMLElement {
         this.iniciarTemporizador();
     }
 
-    // Asigna elementos del DOM a variables para fácil acceso
     configurarElementos() {
         this.topicSelector = this.shadowRoot.getElementById('topicSelector');
         this.messageDisplay = this.shadowRoot.getElementById('messageDisplay');
         this.topicSearch = this.shadowRoot.getElementById('topicSearch');
         this.searchButton = this.shadowRoot.getElementById('searchButton');
+        this.inputNum = this.shadowRoot.getElementById('inputNum');
     }
 
-    // Adjunta manejadores de eventos a los elementos relevantes
     adjuntarManejadoresEventos() {
         this.searchButton.addEventListener('click', () => this.manejarClickBotonBuscar());
-
-        // Manejador de evento 'change' modificado para actualizar el color de fondo del select
         this.topicSelector.addEventListener('change', () => {
             this.mostrarMensajes(this.topicSelector.value);
-
-            // Captura el color de fondo del option seleccionado
             const selectedOption = this.topicSelector.options[this.topicSelector.selectedIndex];
             const selectedColor = selectedOption.style.backgroundColor;
-
-            // Asigna el color de fondo del option al select
             this.topicSelector.style.backgroundColor = selectedColor;
         });
+        this.inputNum.addEventListener('change', () => this.limpiarYReiniciar());
     }
 
-    // Maneja el evento de clic en el botón de búsqueda
     manejarClickBotonBuscar() {
         this.searchFilter = this.topicSearch.value.trim();
         if (this.searchFilter) {
             this.buscarTopicos(this.searchFilter);
-            console.log('Búsqueda iniciada con:', this.searchFilter);
+            console.log('Busqueda iniciada con:', this.searchFilter);
         } else {
-            console.log('No hay término de búsqueda ingresado.');
-            this.messageDisplay.innerHTML = ''; // Limpia cualquier mensaje mostrado si la búsqueda está vacía
+            console.log('No hay termino de busqueda ingresado.');
+            this.messageDisplay.innerHTML = '';
         }
     }
 
-    // Reacciona a cambios en los atributos observados
     attributeChangedCallback(name, oldValue, newValue) {
         if (name === 'filter' && newValue) {
             this.mqttHandler.subscribe(newValue);
         }
     }
 
-    // Maneja la pérdida de conexión
     onConnectionLost(respuesta) {
         if (respuesta.errorCode !== 0) {
-            console.log("Conexión perdida:", respuesta.errorMessage);
+            console.log("Conexion perdida:", respuesta.errorMessage);
         }
     }
 
-    // Maneja la recepción de mensajes MQTT
     manejarMensajeRecibido(message) {
         this.agregarMensaje(message);
-        // Verifica si el mensaje coincide con el filtro de búsqueda y si se tienen permisos para notificar
         if (this.searchFilter && message.payloadString.includes(this.searchFilter) && Notification.permission === "granted") {
-            this.enviarNotificacion(`Nuevo mensaje en tópico: ${message.destinationName}`, message.payloadString);
+            this.enviarNotificacion(`Nuevo mensaje en topico: ${message.destinationName}`, message.payloadString);
         }
     }
 
-    // Envía una notificación al usuario
     enviarNotificacion(titulo, cuerpo) {
         new Notification(titulo, {
             body: cuerpo,
-            icon: 'icon_url' // Opcional: URL de un ícono para mostrar en la notificación
+            icon: 'icon_url'
         });
     }
 
-    // Añade un mensaje al tópico correspondiente y actualiza el contador
     agregarMensaje(mensaje) {
         const topicComplete = mensaje.destinationName;
         const topic = topicComplete.substring(topicComplete.lastIndexOf('/') + 1);
@@ -159,70 +140,29 @@ class TopicViewer extends HTMLElement {
 
         if (!this.topics.has(topic)) {
             this.topics.set(topic, []);
+            this.messageCounters.set(topic, 0); // Inicializar contador de mensajes
             this.agregarOpcionTopico(topic);
-            this.actualizarContadorTopicos(); // Actualiza el contador de tópicos únicos
+            this.actualizarContadorTopicos();
         }
 
         this.topics.get(topic).push(mensaje.payloadString);
-        this.actualizarContadorTopico(topic); // Actualiza el contador en el selector
+        this.messageCounters.set(topic, this.messageCounters.get(topic) + 1); // Incrementar contador de mensajes
+
+        if (this.topics.get(topic).length > parseInt(this.inputNum.value, 10)) {
+            this.topics.get(topic).shift(); // Eliminar mensajes antiguos
+        }
+        this.actualizarContadorTopico(topic);
 
         if (this.topicSelector.value === topic) {
             this.mostrarMensajes(topic);
         }
     }
 
-    // Actualiza el contador de tópicos únicos
     actualizarContadorTopicos() {
-        this.topicCount = this.topics.size; // Obtiene el número de tópicos únicos
-        this.shadowRoot.getElementById('topicCount').textContent = this.topicCount; // Actualiza el contador en el DOM
+        this.topicCount = this.topics.size;
+        this.shadowRoot.getElementById('topicCount').textContent = this.topicCount;
     }
 
-    // Restablece el estilo del tópico al color original
-    restablecerEstiloTopico(topico) {
-        // Seleccionar el elemento select que contiene las opciones
-        const select = this.topicSelector;
-        // Buscar la opción específica dentro del select
-        const option = select.querySelector(`option[value="${topico}"]`);
-        // Verificar si la opción existe
-        if (option) {
-            // Restablecer el color de fondo de la opción específica al color azul original
-            option.style.backgroundColor = '#7ca3cc';
-            // También restablecer el color de fondo del select completo al color azul original
-            //select.style.backgroundColor = '#7ca3cc';
-        }
-    }
-
-    // Inicia un temporizador que verifica periódicamente la necesidad de actualizar el estilo de los tópicos
-    iniciarTemporizador() {
-        setInterval(() => {
-            const currentTime = Date.now();
-            this.topics.forEach((_, topico) => {
-                const lastTime = this.lastUpdateTime.get(topico);
-                if (currentTime - lastTime > 180000) { // 3 minutos
-                    this.actualizarEstiloTopico(topico, true);
-                } else {
-                    this.actualizarEstiloTopico(topico, false);
-                }
-            });
-        }, 30000); // Cada medio minuto
-    }
-
-    // Actualiza el estilo de un tópico específico según si está actualizado o no
-    actualizarEstiloTopico(topico, estaDesactualizado) {
-        // Seleccionar el elemento select que contiene las opciones
-        const select = this.topicSelector;
-        // Buscar la opción específica dentro del select
-        const option = select.querySelector(`option[value="${topico}"]`);
-        // Verificar si la opción existe
-        if (option) {
-            // Actualizar el color de fondo de la opción específica
-            option.style.backgroundColor = estaDesactualizado ? '#e91010' : '#7ca3cc';
-            // También actualizar el color de fondo del select completo
-            select.style.backgroundColor = estaDesactualizado ? '#e91010' : '#7ca3cc';
-        }
-    }
-
-    // Añade un tópico al selector con un contador inicializado a 0
     agregarOpcionTopico(topico) {
         const option = document.createElement('option');
         option.value = topico;
@@ -231,16 +171,14 @@ class TopicViewer extends HTMLElement {
         this.ordenarTopicos();
     }
 
-    // Actualiza el contador de mensajes de un tópico
     actualizarContadorTopico(topico) {
-        const mensajes = this.topics.get(topico);
+        const totalMessages = this.messageCounters.get(topico);
         const option = this.topicSelector.querySelector(`option[value="${topico}"]`);
         if (option) {
-            option.textContent = `${topico} ----- (${mensajes.length})`;
+            option.textContent = `${topico} (${totalMessages})`;
         }
     }
 
-    // Ordena los tópicos alfabéticamente en el selector
     ordenarTopicos() {
         const options = Array.from(this.topicSelector.options);
         options.sort((a, b) => a.textContent.localeCompare(b.textContent));
@@ -248,10 +186,43 @@ class TopicViewer extends HTMLElement {
         options.forEach(option => this.topicSelector.appendChild(option));
     }
 
-    // Muestra los mensajes de un tópico específico
     mostrarMensajes(topico) {
         const mensajes = this.topics.get(topico) || [];
         this.messageDisplay.innerHTML = mensajes.map(mensaje => `<div>${mensaje}</div>`).join('');
+    }
+
+    limpiarYReiniciar() {
+        this.topics.clear();
+        this.messageCounters.clear(); // Limpiar contador de mensajes
+        this.messageDisplay.innerHTML = '';
+        this.topicSelector.innerHTML = '';
+        this.actualizarContadorTopicos();
+        if (this.hasAttribute('filter')) {
+            this.mqttHandler.subscribe(this.getAttribute('filter'));
+        }
+    }
+
+    iniciarTemporizador() {
+        setInterval(() => {
+            const currentTime = Date.now();
+            this.topics.forEach((_, topico) => {
+                const lastTime = this.lastUpdateTime.get(topico);
+                if (currentTime - lastTime > 180000) {
+                    this.actualizarEstiloTopico(topico, true);
+                } else {
+                    this.actualizarEstiloTopico(topico, false);
+                }
+            });
+        }, 30000);
+    }
+
+    actualizarEstiloTopico(topico, estaDesactualizado) {
+        const select = this.topicSelector;
+        const option = select.querySelector(`option[value="${topico}"]`);
+        if (option) {
+            option.style.backgroundColor = estaDesactualizado ? '#e91010' : '#7ca3cc';
+            select.style.backgroundColor = estaDesactualizado ? '#e91010' : '#7ca3cc';
+        }
     }
 }
 
