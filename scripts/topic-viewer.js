@@ -175,7 +175,7 @@ class TopicViewer extends HTMLElement {
         const totalMessages = this.messageCounters.get(topico);
         const option = this.topicSelector.querySelector(`option[value="${topico}"]`);
         if (option) {
-            option.textContent = `${topico} (${totalMessages})`;
+            option.textContent = `${topico} ----- (${totalMessages})`;
         }
     }
 
