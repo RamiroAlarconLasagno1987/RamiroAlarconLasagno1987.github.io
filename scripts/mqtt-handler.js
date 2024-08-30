@@ -9,9 +9,17 @@ class MQTTHandler {
     }
 
     connect() {
-        this.client.onConnectionLost = this.onConnectionLostCallback;
+        this.client.onConnectionLost = (responseObject) => {
+            console.log("Conexion perdida:", responseObject.errorMessage);
+            this.isConnected = false;
+            // Intentar reconectar después de 5 segundos
+            setTimeout(() => {
+                console.log("Intentando reconectar...");
+                this.connect();
+            }, 5000);
+        };
         this.client.onMessageArrived = this.onMessageCallback;
-
+    
         this.client.connect({
             useSSL: true,
             onSuccess: () => {
@@ -21,9 +29,15 @@ class MQTTHandler {
             },
             onFailure: (error) => {
                 console.log("Conexión MQTT segura fallida: " + error.errorMessage);
+                // Intentar reconectar después de 5 segundos
+                setTimeout(() => {
+                    console.log("Intentando reconectar...");
+                    this.connect();
+                }, 5000);
             }
         });
     }
+    
 
     subscribe(filter) {
         if (this.isConnected) {
