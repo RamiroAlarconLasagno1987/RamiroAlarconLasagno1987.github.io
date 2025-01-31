@@ -51,7 +51,7 @@ class TopicViewer extends HTMLElement {
             <div style="display: flex; align-items: center;">
                 <select id="topicSelector"></select>
                 <div id="topicCount" style="margin-left: 10px;">0</div>
-                <input type="number" id="inputNum" value="10" min="1" style="margin-left: 10px;">
+                <input type="number" id="inputNum" value="100" min="1" style="margin-left: 10px;">
             </div>
             <div id="messageDisplay"></div>
         `;
